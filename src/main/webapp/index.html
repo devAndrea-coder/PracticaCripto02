@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -10,7 +9,9 @@
         <title>Login - SB Admin</title>
         <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet" />
         <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
-        
+
+        <!-- Google Sign-In API -->
+        <script src="https://accounts.google.com/gsi/client" async defer></script>
         <!-- AES -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     </head>
@@ -22,7 +23,9 @@
                         <div class="row justify-content-center">
                             <div class="col-lg-5">
                                 <div class="card shadow-lg border-0 rounded-lg mt-5">
-                                    <div class="card-header"><h3 class="text-center font-weight-light my-4">Login</h3></div>
+                                    <div class="card-header">
+                                        <h3 class="text-center font-weight-light my-4">Login</h3>
+                                    </div>
                                     <div class="card-body">
                                         <form id="loginForm">
                                             <div class="form-floating mb-3">
@@ -33,7 +36,6 @@
                                                 <input class="form-control" id="clave" type="password" placeholder="Password" required />
                                                 <label for="clave">Contraseña</label>
                                             </div>
-                                            <!-- Área para mostrar mensajes de error -->
                                             <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
                                             <div class="d-flex align-items-center justify-content-between mt-4 mb-0">
                                                 <button class="btn btn-primary" type="submit" id="loginBtn">
@@ -41,7 +43,16 @@
                                                     <span id="loginSpinner" class="spinner-border spinner-border-sm ms-1" style="display: none;"></span>
                                                 </button>
                                             </div>
+                                            <hr>
                                         </form>
+                                        <div class="google-signin-container">
+                                            <div id="g_id_signin"></div>
+                                        </div>
+                                        <div id="g_id_onload"
+                                             data-client_id="683576227359-a17m87huqbg468fu1tlknkcnru125fl6.apps.googleusercontent.com"
+                                             data-callback="handleCredentialResponse"
+                                             data-auto_prompt="false">
+                                        </div>
                                     </div>
                                     <div class="card-footer text-center py-3">
                                         <div class="small"><a href="registro.html">¿Necesitas una cuenta? ¡Regístrate!</a></div>
@@ -53,44 +64,35 @@
                 </main>
             </div>
         </div>
+
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
         <script>
-            // 🔑 CLAVE SECRETA PARA AES (DEBE COINCIDIR EXACTAMENTE CON EL BACKEND)
-            const SECRET_KEY = "mi_clave_secreta"; // Exactamente 16 caracteres
+            const SECRET_KEY = "mi_clave_secreta";
 
-            // Función para cifrar usando AES-ECB (para coincidir con Java)
             function encryptAES(text, key) {
-                // Convertir la clave a WordArray
                 const keyWordArray = CryptoJS.enc.Utf8.parse(key);
-                
-                // Cifrar usando AES-ECB (sin IV)
                 const encrypted = CryptoJS.AES.encrypt(text, keyWordArray, {
                     mode: CryptoJS.mode.ECB,
                     padding: CryptoJS.pad.Pkcs7
                 });
-                
                 return encrypted.toString();
             }
 
-            // Función para mostrar errores
             function mostrarError(mensaje) {
                 const errorDiv = document.getElementById("errorMessage");
                 errorDiv.textContent = mensaje;
                 errorDiv.style.display = "block";
             }
 
-            // Función para ocultar errores
             function ocultarError() {
-                const errorDiv = document.getElementById("errorMessage");
-                errorDiv.style.display = "none";
+                document.getElementById("errorMessage").style.display = "none";
             }
 
-            // Función para mostrar/ocultar spinner
             function toggleSpinner(mostrar) {
                 const btnText = document.getElementById("loginBtnText");
                 const spinner = document.getElementById("loginSpinner");
                 const btn = document.getElementById("loginBtn");
-                
+
                 if (mostrar) {
                     btnText.textContent = "Iniciando...";
                     spinner.style.display = "inline-block";
@@ -102,25 +104,19 @@
                 }
             }
 
-            // Event listener para el formulario
             document.getElementById("loginForm").addEventListener("submit", function (e) {
                 e.preventDefault();
-                
-                // Ocultar errores previos
                 ocultarError();
-                
-                // Obtener valores de los campos
+
                 const usuario = document.getElementById("usuario").value.trim();
                 const clave = document.getElementById("clave").value.trim();
 
-                // Validaciones básicas
                 if (!usuario || !clave) {
                     mostrarError("Por favor, complete todos los campos.");
                     return;
                 }
-                
+
                 try {
-                    // 🔐 Cifrar clave con AES-ECB (para coincidir con Java)
                     const encryptedClave = encryptAES(clave, SECRET_KEY);
                     console.log("🔐 Clave cifrada:", encryptedClave);
 
@@ -129,10 +125,8 @@
                         clave: encryptedClave
                     };
 
-                    // Mostrar spinner
                     toggleSpinner(true);
 
-                    // Llamada al servlet
                     fetch('login', {
                         method: 'POST',
                         headers: {
@@ -141,38 +135,106 @@
                         },
                         body: JSON.stringify(data)
                     })
-                    .then(response => {
-                        console.log("📡 Response status:", response.status);
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(json => {
-                        toggleSpinner(false);
-                        console.log("📥 Response JSON:", json);
-                        
-                        if (json.status === "ok") {
-                            // Éxito - redirigir
-                            console.log("✅ Login exitoso, redirigiendo...");
-                            window.location.href = json.redirect;
-                        } else {
-                            // Error de credenciales
-                            mostrarError(json.message || "Usuario o contraseña incorrectos");
-                        }
-                    })
-                    .catch(error => {
-                        toggleSpinner(false);
-                        console.error("❌ Error:", error);
-                        mostrarError("Error de conexión. Por favor, intente nuevamente.");
-                    });
-                    
+                            .then(response => {
+                                console.log("📡 Response status:", response.status);
+                                if (!response.ok)
+                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                return response.json();
+                            })
+                            .then(json => {
+                                toggleSpinner(false);
+                                console.log("📥 Response JSON:", json);
+                                if (json.status === "ok") {
+                                    window.location.href = json.redirect;
+                                } else {
+                                    mostrarError(json.message || "Usuario o contraseña incorrectos");
+                                }
+                            })
+                            .catch(error => {
+                                toggleSpinner(false);
+                                console.error("❌ Error:", error);
+                                mostrarError("Error de conexión. Por favor, intente nuevamente.");
+                            });
+
                 } catch (error) {
                     toggleSpinner(false);
                     console.error("❌ Error al cifrar:", error);
                     mostrarError("Error al procesar la contraseña. Intente nuevamente.");
                 }
             });
+
+            function initializeGoogleSignIn() {
+                if (typeof google !== 'undefined' && google.accounts) {
+                    google.accounts.id.initialize({
+                        client_id: "683576227359-a17m87huqbg468fu1tlknkcnru125fl6.apps.googleusercontent.com",
+                        callback: handleCredentialResponse
+                    });
+
+                    google.accounts.id.renderButton(
+                            document.getElementById("g_id_signin"),
+                            {
+                                theme: "outline",
+                                size: "large",
+                                text: "signin_with",
+                                shape: "rectangular"
+                            }
+                    );
+                } else {
+                    setTimeout(initializeGoogleSignIn, 500);
+                }
+            }
+
+            function handleCredentialResponse(response) {
+                console.log('Google credential response:', response);
+
+                const id_token = response.credential;
+                mostrarError('Iniciando sesión con Google...');
+
+                fetch('logingoogle', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id_token})
+                })
+                        .then(res => {
+                            if (!res.ok)
+                                throw new Error('Error de red: ' + res.status);
+                            return res.json();
+                        })
+                        .then(data => {
+                            console.log('Google login response:', data);
+                            if (data.resultado === 'ok') {
+                                setCookie("token", data.token, 7);
+                                const estudianteData = {
+                                    logiEstd: 'Google User',
+                                    email: 'google_user@gmail.com',
+                                    loginTime: new Date().getTime(),
+                                    loginMethod: 'google'
+                                };
+                                guardarSesion({estudianteData});
+                                window.location.href = "tabla.html";
+                            } else {
+                                mostrarError('Error en login con Google');
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Google login error:', err);
+                            mostrarError('Error de conexión con Google. Intente nuevamente.');
+                        });
+            }
+
+            function setCookie(nombre, valor, dias) {
+                const fecha = new Date();
+                fecha.setTime(fecha.getTime() + (dias * 24 * 60 * 60 * 1000));
+                const expira = "expires=" + fecha.toUTCString();
+                document.cookie = nombre + "=" + valor + ";" + expira + ";path=/";
+            }
+
+            function guardarSesion(datos) {
+                sessionStorage.setItem('sesionUsuario', JSON.stringify(datos));
+            }
+
+            // Inicializar botón Google Sign-In
+            window.onload = initializeGoogleSignIn;
         </script>
     </body>
 </html>

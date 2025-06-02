@@ -9,6 +9,8 @@
         <title>Gestión de Clientes</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
         <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+        <!-- Biblioteca CryptoJS para cifrado AES -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
         <style>
             .sb-nav-fixed {
                 padding-left: 0;
@@ -68,9 +70,9 @@
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                         <li> <a class="dropdown-item" href="cambiarPassword.html">
-                                        <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
-                                        Cambiar contraseña
-                                    </a></li>
+                                <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
+                                Cambiar contraseña
+                            </a></li>
                         <li><hr class="dropdown-divider" /></li>
                         <li><a class="dropdown-item" href="#!" onclick="cerrarSesion()">Logout</a></li>
                     </ul>
@@ -95,24 +97,20 @@
             <div id="layoutSidenav_content">
                 <main>
                     <div class="container-fluid px-4">
-                        <h1 class="mt-4">GESTIÓN DE CLIENTES</h1>
-                        <ol class="breadcrumb mb-4">
-                            <li class="breadcrumb-item active">Clientes</li>
-                        </ol>
-
-                        <a class="btn btn-success" href="ReporteClienterServlet" target="_blank">
-                            <i class="fas fa-file-pdf"></i> Reporte Cliente
-                        </a>
                         <br>
-                        <br>
-                        <br>
-                        <!-- Botón para agregar nuevo cliente -->
-                        <div class="mb-3">
-                            <button type="button" class="btn btn-primary" onclick="nuevoCliente()">
-                                <i class="fas fa-plus"></i> Nuevo Cliente
-                            </button>
+                        <!-- ENCABEZADO DE LA PÁGINA -->
+                        <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                            <h1 class="h3 mb-0 text-gray-800">GESTIÓN DE CLIENTES</h1>
+                            <div>
+                                <a class="btn btn-success mr-2" href="ReporteClienterServlet" target="_blank">
+                                    <i class="fas fa-file-pdf"></i> Exportar Reporte
+                                </a>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#clienteModal" onclick="nuevoCliente()">
+                                    <i class="fas fa-plus fa-sm"></i> Nuevo Cliente
+                                </button>
+                            </div>
                         </div>
-
+                       
                         <div class="card mb-4">
                             <div class="card-header">
                                 <i class="fas fa-table me-1"></i>
@@ -148,7 +146,7 @@
                 <footer class="py-4 bg-light mt-auto">
                     <div class="container-fluid px-4">
                         <div class="d-flex align-items-center justify-content-between small">
-                            <div class="text-muted">Copyright &copy; Sistema de Clientes 2024</div>
+                            <div class="text-muted">Copyright &copy; Sistema de Clientes 2025</div>
                         </div>
                     </div>
                 </footer>
@@ -215,38 +213,49 @@
 
                             <div class="mb-3">
                                 <label for="password" class="form-label">Contraseña *</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password" name="password" required minlength="4">
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">Mínimo 4 caracteres</div>
+                                <small class="form-text text-muted" id="passwordHelp">En edición: deje vacío para mantener la actual</small>
                             </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="button" class="btn btn-primary" onclick="guardarCliente()">Guardar</button>
+                            <button type="button" class="btn btn-primary" onclick="guardarCliente()">
+                                <span id="btnGuardarText">Guardar</span>
+                                <span id="btnGuardarSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        <!-- Modal de Confirmación para Eliminar -->
+        <!-- Modal eliminar -->
         <div class="modal fade" id="eliminarModal" tabindex="-1" aria-labelledby="eliminarModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="eliminarModalLabel">Confirmar Eliminación</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <h5 class="modal-title" id="eliminarModalLabel">Confirmar eliminación</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
                     <div class="modal-body">
-                        <p>¿Está seguro de que desea eliminar al cliente:</p>
-                        <p><strong id="clienteEliminar"></strong></p>
-                        <p class="text-danger">Esta acción no se puede deshacer.</p>
+                        ¿Está seguro de que desea eliminar al cliente <strong><span id="clienteEliminarNombre"></span></strong>?
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-danger" onclick="confirmarEliminar()">Eliminar</button>
+                        <button type="button" class="btn btn-danger" onclick="confirmarEliminacionCliente()">Eliminar</button>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Contenedor de alertas -->
+        <div id="alertContainer" class="mt-3"></div>
 
         <!-- Modal de Logout -->
         <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
@@ -271,463 +280,511 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
 
         <script>
-                            // VARIABLES GLOBALES
-                            let idClienteEliminar = 0;
-                            let modoEdicion = false;
-                            let clientes = [];
+            // Variables globales
+            let clientes = [];
+            let clienteIdEliminar = null;
+            // Clave AES debe coincidir exactamente con el backend
+            const AES_KEY = 'mi_clave_secreta'; // AES-128
 
-                            // INICIALIZAR PÁGINA CUANDO SE CARGA
-                            document.addEventListener('DOMContentLoaded', function () {
-                                console.log('Página cargada, iniciando...');
+            // Inicialización cuando el DOM está listo
+            document.addEventListener('DOMContentLoaded', () => {
+                console.log('DOM cargado, iniciando aplicación...');
+                cargarClientes();
+                configurarEventos();
+            });
 
-                                // CARGAR CLIENTES AL INICIAR
-                                cargarClientes();
+            // Configurar todos los event listeners
+            function configurarEventos() {
+                console.log('Configurando eventos...');
 
-                                // CONFIGURAR VALIDACIONES DEL FORMULARIO
-                                configurarValidaciones();
+                // Toggle para mostrar/ocultar contraseña
+                const toggleBtn = document.getElementById('togglePassword');
+                if (toggleBtn) {
+                    toggleBtn.addEventListener('click', togglePassword);
+                }
 
-                                // CONFIGURAR SIDEBAR TOGGLE
-                                const sidebarToggle = document.getElementById('sidebarToggle');
-                                if (sidebarToggle) {
-                                    sidebarToggle.addEventListener('click', function () {
-                                        document.body.classList.toggle('sb-sidenav-toggled');
-                                    });
-                                }
-                            });
+                // Validación de DNI solo números y máximo 8 dígitos
+                const dniInput = document.getElementById('dni');
+                if (dniInput) {
+                    dniInput.addEventListener('input', validarDNI);
+                }
 
-                            // FUNCIÓN PARA CONFIGURAR VALIDACIONES
-                            function configurarValidaciones() {
-                                // VALIDAR QUE EL DNI SOLO CONTENGA NÚMEROS
-                                const dniInput = document.getElementById('dni');
-                                if (dniInput) {
-                                    dniInput.addEventListener('input', function () {
-                                        this.value = this.value.replace(/[^0-9]/g, '');
-                                        if (this.value.length > 8) {
-                                            this.value = this.value.slice(0, 8);
-                                        }
-                                    });
-                                }
+                // Limpiar formulario cuando se cierra el modal
+                const clienteModal = document.getElementById('clienteModal');
+                if (clienteModal) {
+                    clienteModal.addEventListener('hidden.bs.modal', limpiarFormulario);
+                }
 
-                                // CONVERTIR NOMBRES A MAYÚSCULAS
-                                ['apPaterno', 'apMaterno', 'nombre'].forEach(id => {
-                                    const element = document.getElementById(id);
-                                    if (element) {
-                                        element.addEventListener('input', function () {
-                                            this.value = this.value.toUpperCase();
-                                        });
-                                    }
-                                });
+                // Toggle del sidebar
+                const sidebarToggle = document.getElementById('sidebarToggle');
+                if (sidebarToggle) {
+                    sidebarToggle.addEventListener('click', event => {
+                        event.preventDefault();
+                        document.body.classList.toggle('sb-sidenav-toggled');
+                    });
+                }
 
-                                // VALIDAR FECHA NO SUPERIOR A HOY
-                                const fechaNacInput = document.getElementById('fechaNac');
-                                if (fechaNacInput) {
-                                    const hoy = new Date().toISOString().split('T')[0];
-                                    fechaNacInput.setAttribute('max', hoy);
-                                }
-                            }
+                console.log('Eventos configurados correctamente');
+            }
 
-                            // FUNCIÓN PARA CARGAR CLIENTES
-                            function cargarClientes() {
-                                console.log('Cargando clientes...');
+            // Función para toggle de contraseña
+            function togglePassword() {
+                const input = document.getElementById('password');
+                const icon = document.querySelector('#togglePassword i');
 
-                                // Mostrar mensaje de carga
-                                actualizarTablaConMensaje('Cargando clientes...');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            }
 
-                                fetch('estudiante', {
-                                    method: 'GET',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Accept': 'application/json'
-                                    }
-                                })
-                                        .then(response => {
-                                            console.log('Response status:', response.status);
-                                            if (!response.ok) {
-                                                throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-                                            }
-                                            return response.json();
-                                        })
-                                        .then(data => {
-                                            console.log('Datos recibidos:', data);
+            // Validar DNI - solo números y máximo 8 dígitos
+            function validarDNI() {
+                const dniInput = document.getElementById('dni');
+                dniInput.value = dniInput.value.replace(/\D/g, '').substring(0, 8);
+            }
 
-                                            // Manejar diferentes formatos de respuesta
-                                            if (data.success && Array.isArray(data.data)) {
-                                                clientes = data.data;
-                                            } else if (Array.isArray(data)) {
-                                                clientes = data;
-                                            } else {
-                                                throw new Error('Formato de datos incorrecto: ' + JSON.stringify(data));
-                                            }
+            // Función para encriptar contraseña en AES
+            function encriptarPassword(password) {
+                try {
+                    if (!password || password.trim() === '') {
+                        throw new Error('La contraseña no puede estar vacía');
+                    }
 
-                                            renderClientesTable();
-                                        })
-                                        .catch(error => {
-                                            console.error('Error al cargar clientes:', error);
-                                            actualizarTablaConMensaje('Error al cargar clientes: ' + error.message);
-                                            mostrarAlerta('Error al cargar los clientes: ' + error.message, 'danger');
-                                        });
-                            }
+                    // La clave debe ser de 16 caracteres exactos para AES-128
+                    const key = CryptoJS.enc.Utf8.parse(AES_KEY); // Asegura que sea un WordArray
 
-                            // FUNCIÓN PARA ACTUALIZAR TABLA CON MENSAJE
-                            function actualizarTablaConMensaje(mensaje) {
-                                const tbody = document.querySelector('#tablaClientes tbody');
-                                if (tbody) {
-                                    tbody.innerHTML = `<tr><td colspan="8" class="text-center">${mensaje}</td></tr>`;
-                                }
-                            }
+                    // Encriptar con ECB y PKCS7 (equivalente a PKCS5)
+                    const encrypted = CryptoJS.AES.encrypt(password.trim(), key, {
+                        mode: CryptoJS.mode.ECB,
+                        padding: CryptoJS.pad.Pkcs7
+                    });
 
-                            // FUNCIÓN PARA RENDERIZAR TABLA DE CLIENTES
-                            function renderClientesTable() {
-                                const tbody = document.querySelector('#tablaClientes tbody');
+                    const encryptedString = encrypted.toString(); // Base64
+                    console.log('Password encriptada correctamente:', encryptedString);
+                    return encryptedString;
 
-                                if (!tbody) {
-                                    console.error('Elemento tbody de tablaClientes no encontrado');
-                                    return;
-                                }
+                } catch (error) {
+                    console.error('Error al encriptar contraseña:', error);
+                    throw new Error('Error al procesar la contraseña: ' + error.message);
+                }
+            }
 
-                                if (!clientes || clientes.length === 0) {
-                                    tbody.innerHTML = '<tr><td colspan="8" class="text-center">No hay clientes registrados</td></tr>';
-                                    return;
-                                }
+            // Cargar lista de clientes desde el backend
+            async function cargarClientes() {
+                console.log('Cargando clientes...');
 
-                                let html = '';
-                                clientes.forEach(cliente => {
-                                    const fechaFormateada = formatearFecha(cliente.fechNaciClie);
-                                    const nombreCompleto = `${cliente.nombClie || ''} ${cliente.appaClie || ''} ${cliente.apmaClie || ''}`.trim();
+                try {
+                    const response = await fetch('estudiante', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        }
+                    });
 
-                                    html += `
-                        <tr>
-                            <td>${cliente.codiClie || ''}</td>
-                            <td>${cliente.ndniClie || ''}</td>
-                            <td>${cliente.appaClie || ''}</td>
-                            <td>${cliente.apmaClie || ''}</td>
-                            <td>${cliente.nombClie || ''}</td>
-                            <td>${fechaFormateada}</td>
-                            <td>${cliente.logiClie || ''}</td>
-                            <td>
-                                <button class="btn btn-sm btn-warning me-1" onclick="editarCliente(${cliente.codiClie})" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" onclick="eliminarCliente(${cliente.codiClie}, '${nombreCompleto.replace(/'/g, "\\'")}');" title="Eliminar">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                                });
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
 
-                                tbody.innerHTML = html;
-                                console.log('Tabla renderizada correctamente con', clientes.length, 'clientes');
-                            }
+                    const json = await response.json();
 
-                            // FUNCIÓN PARA FORMATEAR FECHA
-                            function formatearFecha(fecha) {
-                                if (!fecha)
-                                    return 'N/A';
+                    if (json.success) {
+                        clientes = json.data || [];
+                        renderizarTabla();
+                        console.log(`Clientes cargados: ${clientes.length}`);
+                    } else {
+                        throw new Error(json.message || 'Error desconocido al cargar clientes');
+                    }
+                } catch (error) {
+                    console.error('Error al cargar clientes:', error);
+                    mostrarAlerta(`Error al cargar clientes: ${error.message}`, 'danger');
+                    // Mostrar mensaje de error en la tabla
+                    document.querySelector('#tablaClientes tbody').innerHTML = 
+                        '<tr><td colspan="8" class="text-center text-danger">Error al cargar datos</td></tr>';
+                }
+            }
 
-                                try {
-                                    let fechaObj;
+            // Renderizar la tabla con los datos de clientes
+            function renderizarTabla() {
+                console.log('Renderizando tabla...');
+                const tbody = document.querySelector('#tablaClientes tbody');
 
-                                    if (typeof fecha === 'string') {
-                                        fechaObj = new Date(fecha + 'T00:00:00');
-                                    } else {
-                                        fechaObj = new Date(fecha);
-                                    }
+                if (!clientes || clientes.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center">No hay clientes registrados</td></tr>';
+                    return;
+                }
 
-                                    if (isNaN(fechaObj.getTime())) {
-                                        console.warn('Fecha inválida:', fecha);
-                                        return fecha.toString();
-                                    }
+                // Generar filas de la tabla
+                tbody.innerHTML = clientes.map(cliente => `
+                    <tr>
+                        <td>${cliente.codiClie}</td>
+                        <td>${cliente.ndniClie || ''}</td>
+                        <td>${cliente.appaClie || ''}</td>
+                        <td>${cliente.apmaClie || ''}</td>
+                        <td>${cliente.nombClie || ''}</td>
+                        <td>${cliente.fechNaciClie || ''}</td>
+                        <td>${cliente.logiClie || ''}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm me-1" onclick="editarCliente(${cliente.codiClie})" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="prepararEliminarCliente(${cliente.codiClie}, '${(cliente.nombClie + ' ' + cliente.appaClie).replace(/'/g, '\\\'')}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
 
-                                    const dia = fechaObj.getDate().toString().padStart(2, '0');
-                                    const mes = (fechaObj.getMonth() + 1).toString().padStart(2, '0');
-                                    const año = fechaObj.getFullYear();
+                console.log('Tabla renderizada correctamente');
+            }
 
-                                    return `${dia}/${mes}/${año}`;
-                                } catch (error) {
-                                    console.error('Error al formatear fecha:', error, 'Fecha original:', fecha);
-                                    return fecha ? fecha.toString() : 'N/A';
-                                }
-                            }
+            // Abrir modal para crear nuevo cliente
+            function nuevoCliente() {
+                console.log('Abriendo modal para nuevo cliente...');
 
-                            // FUNCIÓN PARA NUEVO CLIENTE
-                            function nuevoCliente() {
-                                console.log('Abriendo modal para nuevo cliente');
-                                limpiarFormulario();
-                                modoEdicion = false;
-                                document.getElementById('clienteModalLabel').textContent = 'Nuevo Cliente';
+                limpiarFormulario();
+                document.getElementById('clienteModalLabel').textContent = 'Nuevo Cliente';
+                document.getElementById('password').required = true;
+                document.getElementById('passwordHelp').style.display = 'none';
 
-                                const modal = new bootstrap.Modal(document.getElementById('clienteModal'));
-                                modal.show();
-                            }
+                // Abrir el modal usando Bootstrap
+                const modal = new bootstrap.Modal(document.getElementById('clienteModal'));
+                modal.show();
 
-                            // FUNCIÓN PARA LIMPIAR FORMULARIO
-                            function limpiarFormulario() {
-                                const form = document.getElementById('clienteForm');
-                                if (form) {
-                                    form.reset();
-                                }
+                console.log('Modal de nuevo cliente abierto');
+            }
 
-                                document.getElementById('clienteId').value = '';
+            // Cargar datos de cliente en el modal para edición
+            function editarCliente(id) {
+                console.log('Editando cliente con ID:', id);
 
-                                // Limpiar validaciones visuales
-                                const inputs = document.querySelectorAll('#clienteForm .form-control');
-                                inputs.forEach(input => {
-                                    input.classList.remove('is-valid', 'is-invalid');
-                                });
-                            }
+                const cliente = clientes.find(c => c.codiClie === id);
+                if (!cliente) {
+                    mostrarAlerta('Cliente no encontrado', 'warning');
+                    return;
+                }
 
-                            // FUNCIÓN PARA EDITAR CLIENTE
-                            function editarCliente(id) {
-                                console.log('Editando cliente con ID:', id);
+                // Llenar formulario con datos existentes
+                document.getElementById('clienteId').value = cliente.codiClie;
+                document.getElementById('dni').value = cliente.ndniClie || '';
+                document.getElementById('apPaterno').value = cliente.appaClie || '';
+                document.getElementById('apMaterno').value = cliente.apmaClie || '';
+                document.getElementById('nombre').value = cliente.nombClie || '';
+                document.getElementById('fechaNac').value = cliente.fechNaciClie || '';
+                document.getElementById('login').value = cliente.logiClie || '';
+                document.getElementById('password').value = ''; // Siempre vacío en edición
 
-                                const cliente = clientes.find(c => c.codiClie == id);
+                // Configurar modal para edición
+                document.getElementById('password').required = false;
+                document.getElementById('passwordHelp').style.display = 'block';
+                document.getElementById('clienteModalLabel').textContent = 'Editar Cliente';
 
-                                if (cliente) {
-                                    // Llenar formulario con datos del cliente
-                                    document.getElementById('clienteId').value = cliente.codiClie || '';
-                                    document.getElementById('dni').value = cliente.ndniClie || '';
-                                    document.getElementById('apPaterno').value = cliente.appaClie || '';
-                                    document.getElementById('apMaterno').value = cliente.apmaClie || '';
-                                    document.getElementById('nombre').value = cliente.nombClie || '';
+                // Abrir el modal
+                const modal = new bootstrap.Modal(document.getElementById('clienteModal'));
+                modal.show();
 
-                                    // Formatear fecha para input date (YYYY-MM-DD)
-                                    if (cliente.fechNaciClie) {
-                                        let fechaFormateada = cliente.fechNaciClie;
-                                        if (typeof fechaFormateada === 'string' && fechaFormateada.includes('/')) {
-                                            // Convertir DD/MM/YYYY a YYYY-MM-DD
-                                            const partes = fechaFormateada.split('/');
-                                            if (partes.length === 3) {
-                                                fechaFormateada = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
-                                            }
-                                        }
-                                        document.getElementById('fechaNac').value = fechaFormateada;
-                                    }
+                console.log('Modal de edición abierto para cliente:', cliente.nombClie);
+            }
 
-                                    document.getElementById('login').value = cliente.logiClie || '';
-                                    document.getElementById('password').value = cliente.passClie || '';
+            // Limpiar formulario y quitar clases de validación
+            function limpiarFormulario() {
+                console.log('Limpiando formulario...');
 
-                                    // Configurar modo edición
-                                    modoEdicion = true;
-                                    document.getElementById('clienteModalLabel').textContent = 'Editar Cliente';
+                const form = document.getElementById('clienteForm');
+                if (form) {
+                    form.reset();
+                }
 
-                                    // Mostrar modal
-                                    const modal = new bootstrap.Modal(document.getElementById('clienteModal'));
-                                    modal.show();
-                                } else {
-                                    console.error('Cliente no encontrado con ID:', id);
-                                    mostrarAlerta('Cliente no encontrado', 'danger');
-                                }
-                            }
+                document.getElementById('clienteId').value = '';
 
-                            // FUNCIÓN PARA GUARDAR CLIENTE
-                            function guardarCliente() {
-                                console.log('Iniciando guardado de cliente...');
+                // Quitar clases de validación
+                document.querySelectorAll('.form-control').forEach(element => {
+                    element.classList.remove('is-valid', 'is-invalid');
+                });
 
-                                const form = document.getElementById('clienteForm');
+                // Resetear contraseña como requerida por defecto
+                document.getElementById('password').required = true;
+                document.getElementById('passwordHelp').style.display = 'none';
+            }
 
-                                // Validar formulario
-                                if (!form.checkValidity()) {
-                                    form.reportValidity();
-                                    return;
-                                }
+            // Validar formulario antes de enviar - SIMPLIFICADO
+            function validarFormulario() {
+                console.log('Validando formulario...');
 
-                                // Validaciones adicionales
-                                const dni = document.getElementById('dni').value.trim();
-                                if (dni.length !== 8) {
-                                    mostrarAlerta('El DNI debe tener exactamente 8 dígitos', 'warning');
-                                    document.getElementById('dni').focus();
-                                    return;
-                                }
+                let esValido = true;
+                const esNuevo = !document.getElementById('clienteId').value;
 
-                                // Obtener datos del formulario
-                                const formData = {
-                                    ndniClie: dni,
-                                    appaClie: document.getElementById('apPaterno').value.trim(),
-                                    apmaClie: document.getElementById('apMaterno').value.trim(),
-                                    nombClie: document.getElementById('nombre').value.trim(),
-                                    fechNaciClie: document.getElementById('fechaNac').value,
-                                    logiClie: document.getElementById('login').value.trim(),
-                                    passClie: document.getElementById('password').value
-                                };
+                // Campos obligatorios
+                const camposObligatorios = ['dni', 'apPaterno', 'apMaterno', 'nombre', 'fechaNac', 'login'];
 
-                                // Agregar ID si está en modo edición
-                                if (modoEdicion) {
-                                    const id = document.getElementById('clienteId').value;
-                                    if (id) {
-                                        formData.codiClie = parseInt(id);
-                                    }
-                                }
+                camposObligatorios.forEach(campoId => {
+                    const elemento = document.getElementById(campoId);
+                    const valor = elemento.value.trim();
 
-                                const metodo = modoEdicion ? 'PUT' : 'POST';
+                    if (!valor) {
+                        elemento.classList.add('is-invalid');
+                        elemento.classList.remove('is-valid');
+                        esValido = false;
+                    } else {
+                        elemento.classList.remove('is-invalid');
+                        elemento.classList.add('is-valid');
+                    }
+                });
 
-                                console.log('Enviando datos:', formData);
-                                console.log('Método:', metodo);
+                // Validación específica de DNI (debe tener exactamente 8 dígitos)
+                const dniElemento = document.getElementById('dni');
+                const dni = dniElemento.value.trim();
+                if (dni.length !== 8 || !/^\d{8}$/.test(dni)) {
+                    dniElemento.classList.add('is-invalid');
+                    dniElemento.classList.remove('is-valid');
+                    esValido = false;
+                }
 
-                                // Enviar datos
-                                fetch('estudiante', {
-                                    method: metodo,
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Accept': 'application/json'
-                                    },
-                                    body: JSON.stringify(formData)
-                                })
-                                        .then(response => {
-                                            console.log('Response status:', response.status);
-                                            if (!response.ok) {
-                                                throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-                                            }
-                                            return response.json();
-                                        })
-                                        .then(data => {
-                                            console.log('Respuesta del servidor:', data);
+                // Validación SIMPLIFICADA de contraseña - solo longitud mínima
+                const passwordElemento = document.getElementById('password');
+                const password = passwordElemento.value;
 
-                                            if (data.success) {
-                                                mostrarAlerta(data.message || 'Cliente guardado correctamente', 'success');
+                // Para nuevo cliente, contraseña es obligatoria y mínimo 4 caracteres
+                if (esNuevo) {
+                    if (!password || password.length < 4) {
+                        passwordElemento.classList.add('is-invalid');
+                        passwordElemento.classList.remove('is-valid');
+                        esValido = false;
+                    } else {
+                        passwordElemento.classList.remove('is-invalid');
+                        passwordElemento.classList.add('is-valid');
+                    }
+                }
+                // Para edición, si se proporciona contraseña debe tener al menos 4 caracteres
+                else if (password) {
+                    if (password.length < 4) {
+                        passwordElemento.classList.add('is-invalid');
+                        passwordElemento.classList.remove('is-valid');
+                        esValido = false;
+                    } else {
+                        passwordElemento.classList.remove('is-invalid');
+                        passwordElemento.classList.add('is-valid');
+                    }
+                }
 
-                                                // Cerrar modal
-                                                const modal = bootstrap.Modal.getInstance(document.getElementById('clienteModal'));
-                                                if (modal) {
-                                                    modal.hide();
-                                                }
+                console.log('Validación completada. Es válido:', esValido);
+                return esValido;
+            }
 
-                                                // Recargar lista
-                                                setTimeout(() => {
-                                                    cargarClientes();
-                                                }, 500);
-                                            } else {
-                                                mostrarAlerta('Error: ' + (data.message || 'Error desconocido'), 'danger');
-                                            }
-                                        })
-                                        .catch(error => {
-                                            console.error('Error al guardar cliente:', error);
-                                            mostrarAlerta('Error al guardar el cliente: ' + error.message, 'danger');
-                                        });
-                            }
+            // Función para guardar cliente
+            async function guardarCliente() {
+                console.log('Iniciando guardado de cliente...');
 
-                            // FUNCIÓN PARA ELIMINAR CLIENTE
-                            function eliminarCliente(id, nombre) {
-                                console.log('Preparando eliminación de cliente:', id, nombre);
-                                idClienteEliminar = id;
-                                document.getElementById('clienteEliminar').textContent = nombre || 'Cliente seleccionado';
+                // Validar formulario
+                if (!validarFormulario()) {
+                    mostrarAlerta('Por favor complete correctamente todos los campos obligatorios', 'warning');
+                    return;
+                }
 
-                                const modal = new bootstrap.Modal(document.getElementById('eliminarModal'));
-                                modal.show();
-                            }
+                // Mostrar spinner de carga
+                const btnTexto = document.getElementById('btnGuardarText');
+                const btnSpinner = document.getElementById('btnGuardarSpinner');
+                const btnGuardar = document.querySelector('#clienteModal .btn-primary');
 
-                            // FUNCIÓN PARA CONFIRMAR ELIMINACIÓN
-                            function confirmarEliminar() {
-                                if (!idClienteEliminar) {
-                                    mostrarAlerta('Error: ID de cliente no válido', 'danger');
-                                    return;
-                                }
+                btnTexto.textContent = 'Guardando...';
+                btnSpinner.classList.remove('d-none');
+                btnGuardar.disabled = true;
 
-                                console.log('Confirmando eliminación de cliente ID:', idClienteEliminar);
+                const clienteId = document.getElementById('clienteId').value;
+                const esNuevo = !clienteId;
 
-                                fetch(`estudiante?codiClie=${idClienteEliminar}`, {
-                                    method: 'DELETE',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Accept': 'application/json'
-                                    }
-                                })
-                                        .then(response => {
-                                            console.log('Response status:', response.status);
-                                            if (!response.ok) {
-                                                throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-                                            }
-                                            return response.json();
-                                        })
-                                        .then(data => {
-                                            console.log('Respuesta del servidor:', data);
+                try {
+                    // Construir objeto cliente
+                    const clienteData = {
+                        ndniClie: document.getElementById('dni').value.trim(),
+                        appaClie: document.getElementById('apPaterno').value.trim(),
+                        apmaClie: document.getElementById('apMaterno').value.trim(),
+                        nombClie: document.getElementById('nombre').value.trim(),
+                        fechNaciClie: document.getElementById('fechaNac').value,
+                        logiClie: document.getElementById('login').value.trim()
+                    };
 
-                                            if (data.success) {
-                                                mostrarAlerta(data.message || 'Cliente eliminado correctamente', 'success');
+                    if (!esNuevo) {
+                        clienteData.codiClie = parseInt(clienteId);
+                    }
 
-                                                // Cerrar modal
-                                                const modal = bootstrap.Modal.getInstance(document.getElementById('eliminarModal'));
-                                                if (modal) {
-                                                    modal.hide();
-                                                }
+                    const password = document.getElementById('password').value;
+                    if (password && password.trim() !== '') {
+                        clienteData.passClie = encriptarPassword(password);
+                    }
 
-                                                // Recargar lista
-                                                setTimeout(() => {
-                                                    cargarClientes();
-                                                }, 500);
+                    console.log('Enviando datos al servidor...');
 
-                                                // Resetear ID
-                                                idClienteEliminar = 0;
-                                            } else {
-                                                mostrarAlerta('Error: ' + (data.message || 'Error desconocido'), 'danger');
-                                            }
-                                        })
-                                        .catch(error => {
-                                            console.error('Error al eliminar cliente:', error);
-                                            mostrarAlerta('Error al eliminar cliente: ' + error.message, 'danger');
-                                        });
-                            }
+                    const response = await fetch('estudiante', {
+                        method: esNuevo ? 'POST' : 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json; charset=UTF-8',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(clienteData)
+                    });
 
-                            // FUNCIÓN PARA MOSTRAR ALERTAS
-                            function mostrarAlerta(mensaje, tipo = 'info') {
-                                // Limpiar alertas existentes
-                                const alertasExistentes = document.querySelectorAll('.alert.position-fixed');
-                                alertasExistentes.forEach(alerta => alerta.remove());
+                    let resultado;
+                    const contentType = response.headers.get('content-type');
 
-                                // Crear elemento de alerta
-                                const alerta = document.createElement('div');
-                                alerta.className = `alert alert-${tipo} alert-dismissible fade show position-fixed`;
+                    if (contentType && contentType.includes('application/json')) {
+                        resultado = await response.json();
+                    } else {
+                        const text = await response.text();
+                        throw new Error(`Respuesta no es JSON: ${text.substring(0, 200)}`);
+                    }
 
-                                // Iconos según el tipo
-                                const iconos = {
-                                    success: 'fas fa-check-circle',
-                                    danger: 'fas fa-exclamation-triangle',
-                                    warning: 'fas fa-exclamation-circle',
-                                    info: 'fas fa-info-circle'
-                                };
+                    if (resultado.success) {
+                        // ✅ Cerrar modal correctamente
+                        const modalElement = document.getElementById('clienteModal');
+                        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        }
 
-                                const icono = iconos[tipo] || iconos.info;
+                        // ✅ Eliminar backdrop manualmente si queda colgado
+                        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                        document.body.classList.remove('modal-open');
+                        document.body.style = '';
 
-                                alerta.innerHTML = `
-                    <i class="${icono} me-2"></i>
-                    ${mensaje}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        // ✅ Mostrar mensaje de éxito
+                        mostrarAlerta(resultado.message || `Cliente ${esNuevo ? 'creado' : 'actualizado'} correctamente`, 'success');
+
+                        // ✅ Recargar clientes
+                        await cargarClientes();
+
+                        console.log('Cliente guardado exitosamente');
+                    } else {
+                        throw new Error(resultado.message || 'Error desconocido al guardar cliente');
+                    }
+
+                } catch (error) {
+                    console.error('Error al guardar cliente:', error);
+                    mostrarAlerta(`Error al guardar: ${error.message}`, 'danger');
+                } finally {
+                    // Restaurar botón
+                    btnTexto.textContent = 'Guardar';
+                    btnSpinner.classList.add('d-none');
+                    btnGuardar.disabled = false;
+                }
+            }
+
+            // Preparar modal de confirmación para eliminar cliente
+            function prepararEliminarCliente(id, nombreCompleto) {
+                console.log('Preparando eliminación de cliente:', id, nombreCompleto);
+
+                clienteIdEliminar = id;
+                document.getElementById('clienteEliminarNombre').textContent = nombreCompleto;
+
+                const modal = new bootstrap.Modal(document.getElementById('eliminarModal'));
+                modal.show();
+            }
+            
+            // Confirmar y ejecutar eliminación de cliente
+            async function confirmarEliminacionCliente() {
+                console.log('Confirmando eliminación de cliente:', clienteIdEliminar);
+
+                if (!clienteIdEliminar) {
+                    mostrarAlerta('ID de cliente no válido', 'warning');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`estudiante?codiClie=${clienteIdEliminar}`, {
+                        method: 'DELETE'
+                    });
+
+                    const resultado = await response.json();
+
+                    if (resultado.success) {
+                        // Cerrar modal
+                        const modalElement = document.getElementById('eliminarModal');
+                        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        }
+
+                        // Mostrar mensaje de éxito
+                        mostrarAlerta(resultado.message || 'Cliente eliminado correctamente', 'success');
+
+                        // Recargar tabla
+                        await cargarClientes();
+
+                        // Limpiar variable
+                        clienteIdEliminar = null;
+
+                        console.log('Cliente eliminado exitosamente');
+                    } else {
+                        throw new Error(resultado.message || 'Error desconocido al eliminar cliente');
+                    }
+                } catch (error) {
+                    console.error('Error al eliminar cliente:', error);
+                    mostrarAlerta(`Error al eliminar: ${error.message}`, 'danger');
+                }
+            }
+
+            // Mostrar alerta temporal
+            function mostrarAlerta(mensaje, tipo = 'info') {
+                console.log('Mostrando alerta:', tipo, mensaje);
+
+                const alertContainer = document.getElementById('alertContainer');
+                const alertId = 'alert_' + Date.now();
+
+                const iconClass = tipo === 'success' ? 'check-circle' : 
+                                 tipo === 'danger' ? 'exclamation-triangle' : 'info-circle';
+
+                const alertHTML = `
+                    <div id="${alertId}" class="alert alert-${tipo} alert-dismissible fade show position-fixed" role="alert" style="top: 80px; right: 20px; z-index: 9999; min-width: 300px; max-width: 500px;">
+                        <i class="fas fa-${iconClass}"></i>
+                        ${mensaje}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                 `;
 
-                                document.body.appendChild(alerta);
+                alertContainer.insertAdjacentHTML('beforeend', alertHTML);
 
-                                // Auto-eliminar después de 5 segundos
-                                setTimeout(() => {
-                                    if (alerta && alerta.parentNode) {
-                                        alerta.remove();
-                                    }
-                                }, 5000);
-                            }
+                // Auto-cerrar después de 5 segundos
+                setTimeout(() => {
+                    const alertElement = document.getElementById(alertId);
+                    if (alertElement) {
+                        const bsAlert = new bootstrap.Alert(alertElement);
+                        bsAlert.close();
+                    }
+                }, 5000);
+            }
 
-                            // FUNCIÓN PARA CERRAR SESIÓN
-                            function cerrarSesion() {
-                                const modal = new bootstrap.Modal(document.getElementById('logoutModal'));
-                                modal.show();
-                            }
+            // Mostrar modal de confirmación de logout
+            function cerrarSesion() {
+                console.log('Mostrando modal de logout...');
+                const modal = new bootstrap.Modal(document.getElementById('logoutModal'));
+                modal.show();
+            }
 
-                            // FUNCIÓN PARA CONFIRMAR LOGOUT
-                            function confirmarLogout() {
-                                console.log('Cerrando sesión...');
+            // Ejecutar logout y redirigir
+            function confirmarLogout() {
+                console.log('Cerrando sesión...');
 
-                                // Cerrar modal
-                                const modal = bootstrap.Modal.getInstance(document.getElementById('logoutModal'));
-                                if (modal) {
-                                    modal.hide();
-                                }
+                // Cerrar modal
+                const modalElement = document.getElementById('logoutModal');
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
 
-                                // Mostrar mensaje y redirigir
-                                mostrarAlerta('Cerrando sesión...', 'info');
+                // Mostrar mensaje de despedida
+                mostrarAlerta('Cerrando sesión...', 'info');
 
-                                setTimeout(() => {
-                                    // Cambiar por la URL correcta de tu página de login
-                                    window.location.href = 'index.html';
-                                }, 1000);
-                            }
+                // Redirigir después de un breve delay
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+            }
         </script>
     </body>
 </html>
