@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="" />
+        <meta name="author" content="" />
+        <title>Login - SB Admin</title>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet" />
+        <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+        
+        <!-- AES -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    </head>
+    <body class="bg-primary">
+        <div id="layoutAuthentication">
+            <div id="layoutAuthentication_content">
+                <main>
+                    <div class="container">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-5">
+                                <div class="card shadow-lg border-0 rounded-lg mt-5">
+                                    <div class="card-header"><h3 class="text-center font-weight-light my-4">Login</h3></div>
+                                    <div class="card-body">
+                                        <form id="loginForm">
+                                            <div class="form-floating mb-3">
+                                                <input class="form-control" id="usuario" type="text" placeholder="Usuario" required />
+                                                <label for="usuario">Usuario (Login)</label>
+                                            </div>
+                                            <div class="form-floating mb-3">
+                                                <input class="form-control" id="clave" type="password" placeholder="Password" required />
+                                                <label for="clave">Contraseña</label>
+                                            </div>
+                                            <!-- Área para mostrar mensajes de error -->
+                                            <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
+                                            <div class="d-flex align-items-center justify-content-between mt-4 mb-0">
+                                                <button class="btn btn-primary" type="submit" id="loginBtn">
+                                                    <span id="loginBtnText">Iniciar Sesión</span>
+                                                    <span id="loginSpinner" class="spinner-border spinner-border-sm ms-1" style="display: none;"></span>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div class="card-footer text-center py-3">
+                                        <div class="small"><a href="registro.html">¿Necesitas una cuenta? ¡Regístrate!</a></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+        <script>
+            // 🔑 CLAVE SECRETA PARA AES (DEBE COINCIDIR EXACTAMENTE CON EL BACKEND)
+            const SECRET_KEY = "mi_clave_secreta"; // Exactamente 16 caracteres
+
+            // Función para cifrar usando AES-ECB (para coincidir con Java)
+            function encryptAES(text, key) {
+                // Convertir la clave a WordArray
+                const keyWordArray = CryptoJS.enc.Utf8.parse(key);
+                
+                // Cifrar usando AES-ECB (sin IV)
+                const encrypted = CryptoJS.AES.encrypt(text, keyWordArray, {
+                    mode: CryptoJS.mode.ECB,
+                    padding: CryptoJS.pad.Pkcs7
+                });
+                
+                return encrypted.toString();
+            }
+
+            // Función para mostrar errores
+            function mostrarError(mensaje) {
+                const errorDiv = document.getElementById("errorMessage");
+                errorDiv.textContent = mensaje;
+                errorDiv.style.display = "block";
+            }
+
+            // Función para ocultar errores
+            function ocultarError() {
+                const errorDiv = document.getElementById("errorMessage");
+                errorDiv.style.display = "none";
+            }
+
+            // Función para mostrar/ocultar spinner
+            function toggleSpinner(mostrar) {
+                const btnText = document.getElementById("loginBtnText");
+                const spinner = document.getElementById("loginSpinner");
+                const btn = document.getElementById("loginBtn");
+                
+                if (mostrar) {
+                    btnText.textContent = "Iniciando...";
+                    spinner.style.display = "inline-block";
+                    btn.disabled = true;
+                } else {
+                    btnText.textContent = "Iniciar Sesión";
+                    spinner.style.display = "none";
+                    btn.disabled = false;
+                }
+            }
+
+            // Event listener para el formulario
+            document.getElementById("loginForm").addEventListener("submit", function (e) {
+                e.preventDefault();
+                
+                // Ocultar errores previos
+                ocultarError();
+                
+                // Obtener valores de los campos
+                const usuario = document.getElementById("usuario").value.trim();
+                const clave = document.getElementById("clave").value.trim();
+
+                // Validaciones básicas
+                if (!usuario || !clave) {
+                    mostrarError("Por favor, complete todos los campos.");
+                    return;
+                }
+                
+                try {
+                    // 🔐 Cifrar clave con AES-ECB (para coincidir con Java)
+                    const encryptedClave = encryptAES(clave, SECRET_KEY);
+                    console.log("🔐 Clave cifrada:", encryptedClave);
+
+                    const data = {
+                        usuario: usuario,
+                        clave: encryptedClave
+                    };
+
+                    // Mostrar spinner
+                    toggleSpinner(true);
+
+                    // Llamada al servlet
+                    fetch('login', {
+                        method: 'POST',
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    .then(response => {
+                        console.log("📡 Response status:", response.status);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(json => {
+                        toggleSpinner(false);
+                        console.log("📥 Response JSON:", json);
+                        
+                        if (json.status === "ok") {
+                            // Éxito - redirigir
+                            console.log("✅ Login exitoso, redirigiendo...");
+                            window.location.href = json.redirect;
+                        } else {
+                            // Error de credenciales
+                            mostrarError(json.message || "Usuario o contraseña incorrectos");
+                        }
+                    })
+                    .catch(error => {
+                        toggleSpinner(false);
+                        console.error("❌ Error:", error);
+                        mostrarError("Error de conexión. Por favor, intente nuevamente.");
+                    });
+                    
+                } catch (error) {
+                    toggleSpinner(false);
+                    console.error("❌ Error al cifrar:", error);
+                    mostrarError("Error al procesar la contraseña. Intente nuevamente.");
+                }
+            });
+        </script>
+    </body>
+</html>

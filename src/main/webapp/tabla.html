@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="" />
+        <meta name="author" content="" />
+        <title>Gestión de Clientes</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+        <style>
+            .sb-nav-fixed {
+                padding-left: 0;
+            }
+            .sb-topnav {
+                height: 56px;
+            }
+            .sb-sidenav {
+                width: 225px;
+                height: 100vh;
+                position: fixed;
+                left: 0;
+                top: 56px;
+                z-index: 1038;
+            }
+            #layoutSidenav_content {
+                margin-left: 225px;
+                padding-top: 56px;
+            }
+            .table-responsive {
+                overflow-x: auto;
+            }
+            .btn-sm {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.875rem;
+            }
+            .navbar .dropdown-menu {
+                z-index: 1101 !important;
+                position: absolute;
+            }
+            .alert.position-fixed {
+                top: 80px;
+                right: 20px;
+                z-index: 9999;
+                min-width: 300px;
+                max-width: 500px;
+            }
+        </style>
+    </head>
+
+    <body class="sb-nav-fixed">
+        <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark fixed-top">
+            <!-- Navbar Brand-->
+            <a class="navbar-brand ps-3" href="#">Sistema de Clientes</a>
+
+            <!-- Sidebar Toggle-->
+            <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0 text-white" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <!-- Navbar-->
+            <ul class="navbar-nav ms-auto me-3 me-lg-4">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button"
+                       data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user fa-fw"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                        <li> <a class="dropdown-item" href="cambiarPassword.html">
+                                        <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
+                                        Cambiar contraseña
+                                    </a></li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li><a class="dropdown-item" href="#!" onclick="cerrarSesion()">Logout</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+
+        <div id="layoutSidenav">
+            <div id="layoutSidenav_nav">
+                <nav class="sb-sidenav accordion sb-sidenav-dark bg-dark" id="sidenavAccordion">
+                    <div class="sb-sidenav-menu">
+                        <div class="nav">
+                            <a class="nav-link active" href="#">
+                                <div class="sb-nav-link-icon"><i class="fas fa-users"></i></div>
+                                Gestión de Clientes
+                            </a>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+
+            <div id="layoutSidenav_content">
+                <main>
+                    <div class="container-fluid px-4">
+                        <h1 class="mt-4">GESTIÓN DE CLIENTES</h1>
+                        <ol class="breadcrumb mb-4">
+                            <li class="breadcrumb-item active">Clientes</li>
+                        </ol>
+
+                        <a class="btn btn-success" href="ReporteClienterServlet" target="_blank">
+                            <i class="fas fa-file-pdf"></i> Reporte Cliente
+                        </a>
+                        <br>
+                        <br>
+                        <br>
+                        <!-- Botón para agregar nuevo cliente -->
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-primary" onclick="nuevoCliente()">
+                                <i class="fas fa-plus"></i> Nuevo Cliente
+                            </button>
+                        </div>
+
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="fas fa-table me-1"></i>
+                                Lista de Clientes
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table id="tablaClientes" class="table table-striped table-hover">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>DNI</th>
+                                                <th>AP. PATERNO</th>
+                                                <th>AP. MATERNO</th>
+                                                <th>NOMBRE</th>
+                                                <th>FECHA NAC.</th>
+                                                <th>LOGIN</th>
+                                                <th>ACCIONES</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td colspan="8" class="text-center">Cargando clientes...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                <footer class="py-4 bg-light mt-auto">
+                    <div class="container-fluid px-4">
+                        <div class="d-flex align-items-center justify-content-between small">
+                            <div class="text-muted">Copyright &copy; Sistema de Clientes 2024</div>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </div>
+
+        <!-- Modal para Crear/Editar Cliente -->
+        <div class="modal fade" id="clienteModal" tabindex="-1" aria-labelledby="clienteModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="clienteModalLabel">Nuevo Cliente</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="clienteForm">
+                        <div class="modal-body">
+                            <input type="hidden" id="clienteId" name="clienteId">
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="dni" class="form-label">DNI *</label>
+                                        <input type="text" class="form-control" id="dni" name="dni" required maxlength="8" pattern="[0-9]{8}">
+                                        <div class="form-text">Ingrese 8 dígitos</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="login" class="form-label">Login *</label>
+                                        <input type="text" class="form-control" id="login" name="login" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="apPaterno" class="form-label">Apellido Paterno *</label>
+                                        <input type="text" class="form-control" id="apPaterno" name="apPaterno" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="apMaterno" class="form-label">Apellido Materno *</label>
+                                        <input type="text" class="form-control" id="apMaterno" name="apMaterno" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="nombre" class="form-label">Nombre *</label>
+                                        <input type="text" class="form-control" id="nombre" name="nombre" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="fechaNac" class="form-label">Fecha de Nacimiento *</label>
+                                        <input type="date" class="form-control" id="fechaNac" name="fechaNac" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Contraseña *</label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" onclick="guardarCliente()">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmación para Eliminar -->
+        <div class="modal fade" id="eliminarModal" tabindex="-1" aria-labelledby="eliminarModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="eliminarModalLabel">Confirmar Eliminación</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Está seguro de que desea eliminar al cliente:</p>
+                        <p><strong id="clienteEliminar"></strong></p>
+                        <p class="text-danger">Esta acción no se puede deshacer.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-danger" onclick="confirmarEliminar()">Eliminar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Logout -->
+        <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="logoutModalLabel">Cerrar Sesión</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        ¿Está seguro de que desea cerrar la sesión?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" onclick="confirmarLogout()">Cerrar Sesión</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scripts -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+        <script>
+                            // VARIABLES GLOBALES
+                            let idClienteEliminar = 0;
+                            let modoEdicion = false;
+                            let clientes = [];
+
+                            // INICIALIZAR PÁGINA CUANDO SE CARGA
+                            document.addEventListener('DOMContentLoaded', function () {
+                                console.log('Página cargada, iniciando...');
+
+                                // CARGAR CLIENTES AL INICIAR
+                                cargarClientes();
+
+                                // CONFIGURAR VALIDACIONES DEL FORMULARIO
+                                configurarValidaciones();
+
+                                // CONFIGURAR SIDEBAR TOGGLE
+                                const sidebarToggle = document.getElementById('sidebarToggle');
+                                if (sidebarToggle) {
+                                    sidebarToggle.addEventListener('click', function () {
+                                        document.body.classList.toggle('sb-sidenav-toggled');
+                                    });
+                                }
+                            });
+
+                            // FUNCIÓN PARA CONFIGURAR VALIDACIONES
+                            function configurarValidaciones() {
+                                // VALIDAR QUE EL DNI SOLO CONTENGA NÚMEROS
+                                const dniInput = document.getElementById('dni');
+                                if (dniInput) {
+                                    dniInput.addEventListener('input', function () {
+                                        this.value = this.value.replace(/[^0-9]/g, '');
+                                        if (this.value.length > 8) {
+                                            this.value = this.value.slice(0, 8);
+                                        }
+                                    });
+                                }
+
+                                // CONVERTIR NOMBRES A MAYÚSCULAS
+                                ['apPaterno', 'apMaterno', 'nombre'].forEach(id => {
+                                    const element = document.getElementById(id);
+                                    if (element) {
+                                        element.addEventListener('input', function () {
+                                            this.value = this.value.toUpperCase();
+                                        });
+                                    }
+                                });
+
+                                // VALIDAR FECHA NO SUPERIOR A HOY
+                                const fechaNacInput = document.getElementById('fechaNac');
+                                if (fechaNacInput) {
+                                    const hoy = new Date().toISOString().split('T')[0];
+                                    fechaNacInput.setAttribute('max', hoy);
+                                }
+                            }
+
+                            // FUNCIÓN PARA CARGAR CLIENTES
+                            function cargarClientes() {
+                                console.log('Cargando clientes...');
+
+                                // Mostrar mensaje de carga
+                                actualizarTablaConMensaje('Cargando clientes...');
+
+                                fetch('estudiante', {
+                                    method: 'GET',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json'
+                                    }
+                                })
+                                        .then(response => {
+                                            console.log('Response status:', response.status);
+                                            if (!response.ok) {
+                                                throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+                                            }
+                                            return response.json();
+                                        })
+                                        .then(data => {
+                                            console.log('Datos recibidos:', data);
+
+                                            // Manejar diferentes formatos de respuesta
+                                            if (data.success && Array.isArray(data.data)) {
+                                                clientes = data.data;
+                                            } else if (Array.isArray(data)) {
+                                                clientes = data;
+                                            } else {
+                                                throw new Error('Formato de datos incorrecto: ' + JSON.stringify(data));
+                                            }
+
+                                            renderClientesTable();
+                                        })
+                                        .catch(error => {
+                                            console.error('Error al cargar clientes:', error);
+                                            actualizarTablaConMensaje('Error al cargar clientes: ' + error.message);
+                                            mostrarAlerta('Error al cargar los clientes: ' + error.message, 'danger');
+                                        });
+                            }
+
+                            // FUNCIÓN PARA ACTUALIZAR TABLA CON MENSAJE
+                            function actualizarTablaConMensaje(mensaje) {
+                                const tbody = document.querySelector('#tablaClientes tbody');
+                                if (tbody) {
+                                    tbody.innerHTML = `<tr><td colspan="8" class="text-center">${mensaje}</td></tr>`;
+                                }
+                            }
+
+                            // FUNCIÓN PARA RENDERIZAR TABLA DE CLIENTES
+                            function renderClientesTable() {
+                                const tbody = document.querySelector('#tablaClientes tbody');
+
+                                if (!tbody) {
+                                    console.error('Elemento tbody de tablaClientes no encontrado');
+                                    return;
+                                }
+
+                                if (!clientes || clientes.length === 0) {
+                                    tbody.innerHTML = '<tr><td colspan="8" class="text-center">No hay clientes registrados</td></tr>';
+                                    return;
+                                }
+
+                                let html = '';
+                                clientes.forEach(cliente => {
+                                    const fechaFormateada = formatearFecha(cliente.fechNaciClie);
+                                    const nombreCompleto = `${cliente.nombClie || ''} ${cliente.appaClie || ''} ${cliente.apmaClie || ''}`.trim();
+
+                                    html += `
+                        <tr>
+                            <td>${cliente.codiClie || ''}</td>
+                            <td>${cliente.ndniClie || ''}</td>
+                            <td>${cliente.appaClie || ''}</td>
+                            <td>${cliente.apmaClie || ''}</td>
+                            <td>${cliente.nombClie || ''}</td>
+                            <td>${fechaFormateada}</td>
+                            <td>${cliente.logiClie || ''}</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning me-1" onclick="editarCliente(${cliente.codiClie})" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="eliminarCliente(${cliente.codiClie}, '${nombreCompleto.replace(/'/g, "\\'")}');" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                                });
+
+                                tbody.innerHTML = html;
+                                console.log('Tabla renderizada correctamente con', clientes.length, 'clientes');
+                            }
+
+                            // FUNCIÓN PARA FORMATEAR FECHA
+                            function formatearFecha(fecha) {
+                                if (!fecha)
+                                    return 'N/A';
+
+                                try {
+                                    let fechaObj;
+
+                                    if (typeof fecha === 'string') {
+                                        fechaObj = new Date(fecha + 'T00:00:00');
+                                    } else {
+                                        fechaObj = new Date(fecha);
+                                    }
+
+                                    if (isNaN(fechaObj.getTime())) {
+                                        console.warn('Fecha inválida:', fecha);
+                                        return fecha.toString();
+                                    }
+
+                                    const dia = fechaObj.getDate().toString().padStart(2, '0');
+                                    const mes = (fechaObj.getMonth() + 1).toString().padStart(2, '0');
+                                    const año = fechaObj.getFullYear();
+
+                                    return `${dia}/${mes}/${año}`;
+                                } catch (error) {
+                                    console.error('Error al formatear fecha:', error, 'Fecha original:', fecha);
+                                    return fecha ? fecha.toString() : 'N/A';
+                                }
+                            }
+
+                            // FUNCIÓN PARA NUEVO CLIENTE
+                            function nuevoCliente() {
+                                console.log('Abriendo modal para nuevo cliente');
+                                limpiarFormulario();
+                                modoEdicion = false;
+                                document.getElementById('clienteModalLabel').textContent = 'Nuevo Cliente';
+
+                                const modal = new bootstrap.Modal(document.getElementById('clienteModal'));
+                                modal.show();
+                            }
+
+                            // FUNCIÓN PARA LIMPIAR FORMULARIO
+                            function limpiarFormulario() {
+                                const form = document.getElementById('clienteForm');
+                                if (form) {
+                                    form.reset();
+                                }
+
+                                document.getElementById('clienteId').value = '';
+
+                                // Limpiar validaciones visuales
+                                const inputs = document.querySelectorAll('#clienteForm .form-control');
+                                inputs.forEach(input => {
+                                    input.classList.remove('is-valid', 'is-invalid');
+                                });
+                            }
+
+                            // FUNCIÓN PARA EDITAR CLIENTE
+                            function editarCliente(id) {
+                                console.log('Editando cliente con ID:', id);
+
+                                const cliente = clientes.find(c => c.codiClie == id);
+
+                                if (cliente) {
+                                    // Llenar formulario con datos del cliente
+                                    document.getElementById('clienteId').value = cliente.codiClie || '';
+                                    document.getElementById('dni').value = cliente.ndniClie || '';
+                                    document.getElementById('apPaterno').value = cliente.appaClie || '';
+                                    document.getElementById('apMaterno').value = cliente.apmaClie || '';
+                                    document.getElementById('nombre').value = cliente.nombClie || '';
+
+                                    // Formatear fecha para input date (YYYY-MM-DD)
+                                    if (cliente.fechNaciClie) {
+                                        let fechaFormateada = cliente.fechNaciClie;
+                                        if (typeof fechaFormateada === 'string' && fechaFormateada.includes('/')) {
+                                            // Convertir DD/MM/YYYY a YYYY-MM-DD
+                                            const partes = fechaFormateada.split('/');
+                                            if (partes.length === 3) {
+                                                fechaFormateada = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+                                            }
+                                        }
+                                        document.getElementById('fechaNac').value = fechaFormateada;
+                                    }
+
+                                    document.getElementById('login').value = cliente.logiClie || '';
+                                    document.getElementById('password').value = cliente.passClie || '';
+
+                                    // Configurar modo edición
+                                    modoEdicion = true;
+                                    document.getElementById('clienteModalLabel').textContent = 'Editar Cliente';
+
+                                    // Mostrar modal
+                                    const modal = new bootstrap.Modal(document.getElementById('clienteModal'));
+                                    modal.show();
+                                } else {
+                                    console.error('Cliente no encontrado con ID:', id);
+                                    mostrarAlerta('Cliente no encontrado', 'danger');
+                                }
+                            }
+
+                            // FUNCIÓN PARA GUARDAR CLIENTE
+                            function guardarCliente() {
+                                console.log('Iniciando guardado de cliente...');
+
+                                const form = document.getElementById('clienteForm');
+
+                                // Validar formulario
+                                if (!form.checkValidity()) {
+                                    form.reportValidity();
+                                    return;
+                                }
+
+                                // Validaciones adicionales
+                                const dni = document.getElementById('dni').value.trim();
+                                if (dni.length !== 8) {
+                                    mostrarAlerta('El DNI debe tener exactamente 8 dígitos', 'warning');
+                                    document.getElementById('dni').focus();
+                                    return;
+                                }
+
+                                // Obtener datos del formulario
+                                const formData = {
+                                    ndniClie: dni,
+                                    appaClie: document.getElementById('apPaterno').value.trim(),
+                                    apmaClie: document.getElementById('apMaterno').value.trim(),
+                                    nombClie: document.getElementById('nombre').value.trim(),
+                                    fechNaciClie: document.getElementById('fechaNac').value,
+                                    logiClie: document.getElementById('login').value.trim(),
+                                    passClie: document.getElementById('password').value
+                                };
+
+                                // Agregar ID si está en modo edición
+                                if (modoEdicion) {
+                                    const id = document.getElementById('clienteId').value;
+                                    if (id) {
+                                        formData.codiClie = parseInt(id);
+                                    }
+                                }
+
+                                const metodo = modoEdicion ? 'PUT' : 'POST';
+
+                                console.log('Enviando datos:', formData);
+                                console.log('Método:', metodo);
+
+                                // Enviar datos
+                                fetch('estudiante', {
+                                    method: metodo,
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json'
+                                    },
+                                    body: JSON.stringify(formData)
+                                })
+                                        .then(response => {
+                                            console.log('Response status:', response.status);
+                                            if (!response.ok) {
+                                                throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+                                            }
+                                            return response.json();
+                                        })
+                                        .then(data => {
+                                            console.log('Respuesta del servidor:', data);
+
+                                            if (data.success) {
+                                                mostrarAlerta(data.message || 'Cliente guardado correctamente', 'success');
+
+                                                // Cerrar modal
+                                                const modal = bootstrap.Modal.getInstance(document.getElementById('clienteModal'));
+                                                if (modal) {
+                                                    modal.hide();
+                                                }
+
+                                                // Recargar lista
+                                                setTimeout(() => {
+                                                    cargarClientes();
+                                                }, 500);
+                                            } else {
+                                                mostrarAlerta('Error: ' + (data.message || 'Error desconocido'), 'danger');
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('Error al guardar cliente:', error);
+                                            mostrarAlerta('Error al guardar el cliente: ' + error.message, 'danger');
+                                        });
+                            }
+
+                            // FUNCIÓN PARA ELIMINAR CLIENTE
+                            function eliminarCliente(id, nombre) {
+                                console.log('Preparando eliminación de cliente:', id, nombre);
+                                idClienteEliminar = id;
+                                document.getElementById('clienteEliminar').textContent = nombre || 'Cliente seleccionado';
+
+                                const modal = new bootstrap.Modal(document.getElementById('eliminarModal'));
+                                modal.show();
+                            }
+
+                            // FUNCIÓN PARA CONFIRMAR ELIMINACIÓN
+                            function confirmarEliminar() {
+                                if (!idClienteEliminar) {
+                                    mostrarAlerta('Error: ID de cliente no válido', 'danger');
+                                    return;
+                                }
+
+                                console.log('Confirmando eliminación de cliente ID:', idClienteEliminar);
+
+                                fetch(`estudiante?codiClie=${idClienteEliminar}`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json'
+                                    }
+                                })
+                                        .then(response => {
+                                            console.log('Response status:', response.status);
+                                            if (!response.ok) {
+                                                throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+                                            }
+                                            return response.json();
+                                        })
+                                        .then(data => {
+                                            console.log('Respuesta del servidor:', data);
+
+                                            if (data.success) {
+                                                mostrarAlerta(data.message || 'Cliente eliminado correctamente', 'success');
+
+                                                // Cerrar modal
+                                                const modal = bootstrap.Modal.getInstance(document.getElementById('eliminarModal'));
+                                                if (modal) {
+                                                    modal.hide();
+                                                }
+
+                                                // Recargar lista
+                                                setTimeout(() => {
+                                                    cargarClientes();
+                                                }, 500);
+
+                                                // Resetear ID
+                                                idClienteEliminar = 0;
+                                            } else {
+                                                mostrarAlerta('Error: ' + (data.message || 'Error desconocido'), 'danger');
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('Error al eliminar cliente:', error);
+                                            mostrarAlerta('Error al eliminar cliente: ' + error.message, 'danger');
+                                        });
+                            }
+
+                            // FUNCIÓN PARA MOSTRAR ALERTAS
+                            function mostrarAlerta(mensaje, tipo = 'info') {
+                                // Limpiar alertas existentes
+                                const alertasExistentes = document.querySelectorAll('.alert.position-fixed');
+                                alertasExistentes.forEach(alerta => alerta.remove());
+
+                                // Crear elemento de alerta
+                                const alerta = document.createElement('div');
+                                alerta.className = `alert alert-${tipo} alert-dismissible fade show position-fixed`;
+
+                                // Iconos según el tipo
+                                const iconos = {
+                                    success: 'fas fa-check-circle',
+                                    danger: 'fas fa-exclamation-triangle',
+                                    warning: 'fas fa-exclamation-circle',
+                                    info: 'fas fa-info-circle'
+                                };
+
+                                const icono = iconos[tipo] || iconos.info;
+
+                                alerta.innerHTML = `
+                    <i class="${icono} me-2"></i>
+                    ${mensaje}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+
+                                document.body.appendChild(alerta);
+
+                                // Auto-eliminar después de 5 segundos
+                                setTimeout(() => {
+                                    if (alerta && alerta.parentNode) {
+                                        alerta.remove();
+                                    }
+                                }, 5000);
+                            }
+
+                            // FUNCIÓN PARA CERRAR SESIÓN
+                            function cerrarSesion() {
+                                const modal = new bootstrap.Modal(document.getElementById('logoutModal'));
+                                modal.show();
+                            }
+
+                            // FUNCIÓN PARA CONFIRMAR LOGOUT
+                            function confirmarLogout() {
+                                console.log('Cerrando sesión...');
+
+                                // Cerrar modal
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('logoutModal'));
+                                if (modal) {
+                                    modal.hide();
+                                }
+
+                                // Mostrar mensaje y redirigir
+                                mostrarAlerta('Cerrando sesión...', 'info');
+
+                                setTimeout(() => {
+                                    // Cambiar por la URL correcta de tu página de login
+                                    window.location.href = 'index.html';
+                                }, 1000);
+                            }
+        </script>
+    </body>
+</html>
